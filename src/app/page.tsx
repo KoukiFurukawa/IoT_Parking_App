@@ -1,46 +1,61 @@
 "use client"
 import Image from "next/image";
 import { Wrapper, Status } from "@googlemaps/react-wrapper";
-import { GoogleMap, useJsApiLoader } from "@react-google-maps/api";
+import { GoogleMap, LoadScript, Marker } from "@react-google-maps/api";
+
+import { loadAvailableParking } from "./lib/firebase/firebase_modules";
+import { IPosition, ParkingData } from "./lib/interfaces";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  const googleMapAPI: any = process.env.NEXT_PUBLIC_GOOGLE_MAP_API;
+    const googleMapAPI: any = process.env.NEXT_PUBLIC_GOOGLE_MAP_API;
+    const containerStyle = {
+        width: "100%",
+        height: "92vh",
+    };
+    const zoom = 13;
+    const [position, setPosition] = useState<IPosition>({ lat:0, lng:0 })
+    const [map, setMap] = useState<google.maps.Map>();
+    const [coordinates, setCoordinates] = useState<ParkingData[]>([{name:"", path: { x:0, y:0 }, percent: 0}])
 
-  const containerStyle = {
-    width: "100%",
-    height: "86vh",
-  };
-  
-  const center = {
-    lat: 34.7293466708865,
-    lng: 135.49939605607292,
-  };
-  
-  const zoom = 13;  
-
-  const render = (status: Status) => {
-    return <h1>{status}</h1>;
-  };
-
-  const { isLoaded } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: 'YOUR API KEY HERE',
-    libraries: ['geometry', 'drawing'],
-  });
-  
-
-  return (
-    <>
-      <Wrapper apiKey={googleMapAPI} render={render}>
-        { isLoaded ? 
-          <GoogleMap
-            mapContainerStyle={containerStyle}
-            center={center}
-            zoom={zoom}
-        ></GoogleMap> : 
-        <></>
+    useEffect(() => {
+        navigator.geolocation.getCurrentPosition(position => {
+            const userPos: IPosition = {
+                lat: position.coords.latitude,
+                lng: position.coords.longitude
+            };
+            setPosition(userPos);
+        });
+        const loadData = async () => {
+            const data = await loadAvailableParking();
+            setCoordinates(data)
         }
-      </Wrapper>
-    </>
-  );
+        loadData();
+
+    }, [])
+
+    const render = (status: Status) => {
+        return <h1>{status}</h1>;
+    };
+    
+
+    return (
+        <>
+            <div className="">
+                <Wrapper apiKey={googleMapAPI} render={render}>
+                    <GoogleMap
+                        mapContainerStyle={containerStyle}
+                        center={position}
+                        zoom={zoom}
+                        onLoad={map => { setMap(map); }}
+                    >
+                        { coordinates.map((marker, index) => (
+                            <Marker key={index} position={{ lat: marker.path.x, lng: marker.path.y }} title={marker.name} />
+                        ))}
+                    </GoogleMap>
+                    
+                </Wrapper>
+            </div>
+        </>
+    );
 }
