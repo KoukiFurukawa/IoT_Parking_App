@@ -18,7 +18,20 @@ const MarkerComp: React.FC<Props> = ({ map, coordinates, onMarkerClick }) => {
     useEffect(() => {
         if (map) {
             const newMarkers = coordinates.map((data) => {
-                const color = data.percent > 50 ? "red" : "green"; // 条件に応じて色を変更
+                let color: string;
+                if (data.percent > 0.7)
+                {
+                    color = "red"
+                }
+                else if (data.percent > 0.3)
+                {
+                    color = "yellow"
+                }
+                else{
+                    color = "green"
+                } // 条件に応じて色を変更
+                
+                
                 const iconUrl = `https://maps.google.com/mapfiles/ms/icons/${color}-dot.png`; // Google MapsのカスタムアイコンURL
 
                 const marker = new google.maps.Marker({
